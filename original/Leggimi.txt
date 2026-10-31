@@ -1,0 +1,66 @@
+Electric ! Screen Saver per Windows 95 e Windows NT
+-----------------------------------------------------
+
+1 Licenza, condizioni ...
+-------------------------
+Questo programma è ASSOLUTAMENTE FREEWARE. Non dovete pagarmi nulla. 
+
+Questo programma viene distribuito senza NESSUNA GARANZIA, più in particolare senza alcuna garanzia di salvataggio di alcunchè ...
+
+2 Installazione
+--------------
+Copiare semplicemente il file "electric.scr" nella vostra directory \windows\system (95) o \windows\system32 (NT) e selezionare "electric" da pannello di controllo.
+
+3 Configurazione
+---------------
+Electric richiede per l'esecuzione Windows 95 o Windows NT, versione 3.51 o superiore. 
+
+Electric è uno screen saver che sfrutta intensivamente il processore.
+Anche se la prima versione è stata sviluppata per processori 486/66 con risoluzione video 1024*768,
+la performance risulterà migliore con un Pentium e una risoluzione video 640*480.
+
+L'animazione delle immagini funziona solo con una configurazione della profondità del colore a 256 colori.
+Con una profondità colore configurata a True Color o 16 bit, Electric mostrerà solo immagini statiche.
+Con una profondità colore configurata a 16 colori, il risultato sarà semplicemente ...terribile. 
+
+Questo vuol dire che dovete abbanadonare la profondità colore True Color e l'alta risoluzione per cambiare la costra configurazione a 640*480 pixels con una profondità colore a 256 colori ?
+La risposta è no. Sin dalla versione 1.2, Electric ! è capace di modificare automaticamente la risoluzione video allo startup, utilizzando le librerie Microsoft's DirectX.
+Potete mantenere la vostra configurazione abituale; tutto quello che dovete fare è installare la libreria Microsoft's DirectX e selezionare l'opzione "Allow DirectX display mode change" nelle configurazioni di Electric!. 
+
+4 Bug reports, etc...
+---------------------
+
+Se avete dei bug da segnalare, suggerimenti da implementa, o semplicemente volete comunicarmi come tutto questo abbia cambiato la vostrta vita, inviatemi una e-mail a:
+JX Bardant
+bardant@club-internet.fr
+
+Se volete maggiori informazioni su Electric !, o se volete l'ultima versione, controllate la Home Page di Electric ! a: http://www.geocities.com/Paris/LeftBank/1140/electric.html
+
+5 Cosa c'è di nuovo nella versione 1.3
+--------------------------------------
+
+* Ottimizzato: Il tempo necessario per disegnare una nuova immagine è molto minore se è selezionata l'opzione DirectX option is used 
+* Aggiunto: Electric can now display a line of "subliminal" text. Well, it's not really subliminal but you get the idea. 
+* Aggiunto : Effetti Tiling e blurring
+* Aggiunto : Nuove palettes di colori
+* Fissato : L'opzione DirectX adesso funziona con NT 4.0. 
+* Fissato : I sistemi di diminuzione del consumo di energia del monitor adesso funzionano anche quando è selezionata l'opzione DirectX. 
+* Fissato : Lo screen saver non si interrompe più quando appare la dialog box nella modalità DirectX. 
+
+6 Cosa c'è di nuovo nella versione 1.2
+--------------------------------------
+
+* Aggiunto : Supporto DirectX per il color mode switching in Windows 95.
+* Aggiunto : Possibilità di variare la velocità di animazione.
+* Aggiunto : Possibilità di selezionare le palettes di colori.
+* Aggiunto : La modalità di preview a tutto schermo permette di modificare le opzioni al 'volo'.
+* Fissato : L'opzione 'Screen scan' dell'anti-virus McAfee interrompe l'esecuzione dello screen saver.
+
+
+7 Cosa c'è di nuovo nella versione 1.1
+--------------------------------------
+* Aggiunto : possibilità di configurazione con una finestra di preview, così potete vedere immediatamente come cambia lo schermo.
+* Aggiunto : Possibilità di ignorare i movimenti del mouse.
+* Corretti i bugs in modalità 256 colori : 1) animazione troppo veloce quando il lettore multimediale è in esecuzione in background; 2) colori errati dopo che lo screen saver è terminato.
+* Migliorato : palette colori più accattivante in modalità 256 colori.
+

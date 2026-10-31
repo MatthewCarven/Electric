@@ -1,0 +1,84 @@
+Electric ! Economiseur d'ecran pour Windows 95 et Windows NT
+------------------------------------------------------------
+
+1 Licence, absence de garantie et tout ça ...
+---------------------------------------------
+Ce programme est fourni sans aucune espèce de garantie,
+et certainement pas celle d'économiser quoi que ce soit (et puis quoi encore ?). 
+
+Ce programme est gratuit. Vous n'avez rien à me payer. 
+
+2 Installation
+--------------
+Décompressez le fichier electric.zip, copiez le fichier "Electric !.scr"
+vers votre repertoire \windows\system (sous Windows 95) ou \windows\system32
+(sous Windows NT) et choisissez "Electric !" dans le panneau de configuration. 
+
+3 Configuration
+---------------
+Electric ! nécessite Windows 95 ou Windows NT, version 3.51 ou supérieure.
+
+Electric ! est un économiseur d'écran assez gourmand en temps de calcul.
+Bien que la première version ait été développée pour un 486 avec une
+résolution d'écran de 1024*768 pixels, vous obtiendrez de bien meilleures
+performances sur un Pentium avec une résolution vidéo de 640*480 pixels. 
+
+L'animation des images ne fonctionnera que si votre carte vidéo et configurée
+en 256 couleurs. Avec une configuration en "True Color" ou de 16 bits Electric !
+se contentera d'afficher des images statiques.
+Avec une résolution de 16 couleurs, le résultat sera assez nul... 
+
+Cela signifie-t'il que vous devez abandonner les hautes résolutions
+et reconfigurer votre PC pour tourner en 640*480 pixels avec 256 couleurs ?
+La réponse est non. Depuis la version 1.2, Electric ! est capable de changer
+automatiquement la résolution vidéo quand il se lance, en utilisant DirectX de Microsoft.
+Vous pouvez garder votre configuration habituelle. Tout ce que vous avez à faire
+est d'installer DirectX sur votre PC et de cocher l'option
+"Allow DirectX display mode change" dans la configuration d'Electric !. 
+
+4 Bogues, suggestions, suggestions de bogues...
+------------------------------------------------
+Si vous avez une bogue à reporter, une suggestion à soumettre, ou si vous
+voulez simplement me dire à quel point votre vie a changé depuis que vous
+avez installé ce programme, vous pouvez m'envoyer un e-mail à l'adresse suivante : 
+
+JX Bardant 
+bardant@club-internet.fr 
+
+Si vous voulez avoir plus d'information au sujet d'Electric !
+ou que vous voulez télécharger la dernière version, faites
+un tour sur la page d'Electric ! à l'adresse :
+
+http://www.geocities.com/Paris/LeftBank/1140/electric.html
+
+
+5 Quoi de neuf dans la version 1.3 ?
+------------------------------------
+* Optimisé : le temps de calcul d'une nouvelle image est beaucoup plus court,
+à condition que l'option DirectX soit utilisée. 
+* Ajouté : Electric peut maintenant afficher une ligne de texte "subliminal".
+Bon, ce n'est pas si subliminal que ça, mais vous pouvez essayer quand même. 
+* Ajouté : Effets de dallage et de brouillage. 
+* Ajouté : Nouvelles palettes de couleur. 
+* Corrigé : L'option DirectX fonctionne correctement avec Windows NT 4.0.
+* Corrigé : L'alimentation minimale et la désactivation de l'écran fonctionnent
+désormais même quand l'option DirectX est cochée.
+* Corrigé : L'économiseur ne s'arrête plus quand une boîte de dialogue s'affiche et
+que l'option DirectX est activée. 
+
+6 Qu'est-ce qu'il y avait de neuf dans la version 1.2 ?
+-------------------------------------------------------
+* Ajouté : Utilisation de DirectX pour changer le mode vidéo au lancement. 
+* Ajouté : Possibilité de changer la vitesse d'animation. 
+* Ajouté : Possibilité de choisir la palette de couleurs. 
+* Ajouté : Prévisualisation en plein écran permattant de changer les options 'au vol'. 
+* Corrigé : L'option 'Screen scan' du dévéroleur McAffee n'arrête plus nécessairement l'économiseur.
+
+7 Qu'est-ce qu'il y avait de neuf dans la version 1.1 ?
+-------------------------------------------------------
+* Ajouté : possibilités de configuration, avec fenêtre de prévisualisation, pour
+que vous ayez une idée de la tête des écrans. 
+* Ajouté : possibilité d'ignorer les mouvements de la souris. 
+* Corrigé : bogues en mode 256 couleurs 1) animation trop rapide quand le lecteur
+multimédia est actif 2) couleurs mal restaurées quand l'économiseur s'arrête 
+* Amélioré : palette de couleurs donnant une image plus nette en mode 256 couleurs 

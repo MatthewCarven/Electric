@@ -1,0 +1,92 @@
+Electric ! 1.3 Screen Saver fuer Windows 95 und Windows NT
+------------------------------------------------------
+
+1 Lizenz, Rechtliches ...
+-------------------------
+Dieses Programm ist Freeware, das heisst, Sie muessen nichtsfuer seine Benutzung zahlen.
+Der Programmierer uebernimmt keine Garantie. Fuer nichts undgar nichts.
+Und schon gar nicht, dass das Programm Ihnen ir-gend etwas erspart (kleines Wortspiel
+im englischen - ScreenSaver und "about saving anything...").
+
+2 Installation
+--------------
+Wenn Sie das Programm als Archiv (Endung ".zip") erhaltenhaben, mit pkunzip entpacken;
+einfach die Datei "Electric !.scr" in Ihr System-Verzeichnis (z.B. c:\windows\system oder
+c:\windows\system32 fuer NT) verschieben. Dann ueber die Systemsteuerung Electric
+als Screensaver auswaehlen.
+
+3 Konfiguration
+---------------
+Electric benoetigt Windows 95 oder Windows NT (Version 3.51 oder hoeher).
+
+Electric ist ein rechenintensiver Bildschirmschoner. Obwohl die erste Version fuer Rechner ab
+486/66 bei einer Aufloesung von 1024*768 entwickelt wurde, ist die Performance mit einem
+Pentium-Prozessor und einer Aufloesung von 640*480 deutlich besser.
+
+Die Animation der Bilder funktioniert nur, wenn die Farbtiefe auf 256 Farben eingestellt ist.
+Im High- oder TrueColor-Modus kann Electric nur statische Bilder anzeigen.
+Bei einer Farb-tiefe von 16 Farben sind einfach nur scheussliche Ergebnisse zu erwarten.
+
+Das bedeutet aber nicht, dass Sie auf Echtfarben oder hohe Aufloesungen
+verzichten und Ihren Bildschirm auf 640*480 bei 256 Farben einstellen muessen, nur um dafuer
+dann einen tollen Bildschirmschoner zu haben; seit Version 1.2 kann Electric bei Aktivierung
+selbstaendig die Aufloesung aendern, wenn Microsoft's DirectX-Schnittstelle installiert ist.
+
+Deshalb koennen Sie Ihre gewohnte Konfiguration beibehalten; Sie sollten lediglich DirectX
+installieren, falls Sie dies nicht schon getan haben, und das Kaestchen "Allow DirectX display
+mode change" in den Einstellungen von Electric aktivieren.
+
+4 Bugs, Fehler, etc...
+----------------------
+Wenn Sie einen Fehler im Programm entdecken, es auf Ihrem Rechner partout nicht laufen will,
+abstuerzt oder Sie einen Verbesserungsvorschlag haben, oder mir einfach erzaehlen moechten,
+wie es Ihr Leben veraendert hat, dann senden Sie bitte eine E-Mail (auf englisch!!!) an:
+
+JX Bardant
+bardant@club-internet.fr
+
+Wenn Sie mehr Informationen ueber mich oder das Programm haben oder die neueste Version
+erhalten moechten, besuchen Sie die Electric! Homepage unter :
+
+http://www.geocities.com/Paris/LeftBank/1140/electric.html
+
+5 Was gibt es Neues in Version...
+---------------------------------
+
+Version 1.3:
+
+* Verbessert: Die benoetigte Zeit zur Berechnung eines neuen  Bildes wurde bei
+DirectX-Unterstuetzung wesentlich verkuerzt.
+* Neu: Electric kann nun eine Zeile "subliminalen" Text an-  zeigen. Naja, es ist nicht
+wirklich subliminaler Text, aber  es kommt nahe dran.
+* Neu: Neue Effekte, naemlich Kacheln (Tiling) und Verschmieren  (Blurring).
+* Neu: Neue Farbpaletten.
+* Bugfix: Die DirectX-Option arbeitet jetzt auch mit Windows  NT 4.0
+* Bugfix: Die Powermanagement-Funktionen fuer Monitore arbeiten  nun auch, wenn die
+DirectX-Option benutzt wird.
+* Bugfix: Der Screensaver friert nicht mehr ein, wenn im  DirectX-Modus eine Dialog-Box
+eingeblendet wird.
+
+Version 1.2:
+
+* Neu: DirectX-Unterstuetzung fuer das Farbmodus-Switching  unter Windows 95.
+* Neu: Moeglichkeit, die Geschwindigkeit der Animation zu  aendern.
+* Neu: Moeglichkeit, Farbpaletten auszuwaehlen.
+* Neu: Vorschau in voller Bildschirmaufloesung mit der  Moeglichkeit, Optionen 'on the fly'
+zu aendern.
+* Bugfix: Die Screen-Scan-Option des McAffe Antiviren-  Programms beendet den Screensaver.
+
+Version 1.1:
+
+* Neu: Einstellungsmoeglichkeiten mit Vorschaufenster, sodass  man sofort sehen kann,
+wie der Saver aussehen wird
+* Neu: Einstellung "Mausbewegungen ignorieren"
+* Bugfix: Fehler im 256-Farben-Modus beseitigt; die Animation  lief bislang zu schnell, wenn
+der Multimedia Player aktiv  war; auch gab es Faelle von fehlerhaften Farben nach Beenden 
+des Screensavers
+* Verbessert: Bessere Farbpalette fuer den 256-Farben-Modus
+
+-----------------------------
+
+German translation done by Rainer Gottwald(karellen@compuserve.com)
+http://ourworld.compuserve.com/Homepages/Karellen/
