@@ -1,0 +1,638 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Electric Shader Lab</title>
+<!--
+  Electric ! remake: GPU shader lab.
+
+  Same idea as JX Bardant's 1997 original, rebuilt for a modern GPU:
+    1. Field pass: a fragment shader sums every particle's potential at each
+       pixel into a float texture. This is the original's 256-colour indexed
+       image, but with full float precision.
+    2. Optional blur pass on that field (circular mean, so bands don't smear).
+    3. Palette pass: colour = palette(fract(field + phase)). Advancing `phase`
+       every frame is AnimatePalette; nothing else is recomputed.
+
+  The eight potential formulas come from the original's own help strings.
+  The palettes' colours are guesses until we capture the real ones.
+  Keys: H panel, N new image, P next palette, C classic/modern, Space pause, F fullscreen.
+-->
+<style>
+  :root {
+    --bg: #000;
+    --panel: rgba(14, 16, 22, 0.88);
+    --ink: #e9edf5;
+    --muted: #98a2b6;
+    --line: rgba(255, 255, 255, 0.12);
+    --accent: #78d6ff;
+  }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--ink);
+    font: 13px/1.4 "Segoe UI", system-ui, sans-serif; overflow: hidden; }
+  canvas { position: fixed; inset: 0; width: 100vw; height: 100vh; display: block; }
+  canvas.px { image-rendering: pixelated; }
+  body.nocursor, body.nocursor canvas { cursor: none; }
+  #panel { position: fixed; top: 12px; right: 12px; width: 300px; max-height: calc(100vh - 24px);
+    overflow-y: auto; box-sizing: border-box; padding: 12px 14px 10px; background: var(--panel);
+    border: 1px solid var(--line); border-radius: 10px; backdrop-filter: blur(8px); }
+  #panel.hidden { display: none; }
+  h1 { font-size: 14px; margin: 0 0 2px; letter-spacing: .02em; }
+  .sub { color: var(--muted); font-size: 11.5px; margin-bottom: 4px; }
+  fieldset { border: 0; border-top: 1px solid var(--line); margin: 8px 0 0; padding: 6px 0 0; }
+  legend { color: var(--accent); font-size: 11px; text-transform: uppercase; letter-spacing: .08em; padding: 0 6px 0 0; }
+  label.row { display: grid; grid-template-columns: 92px 1fr 40px; align-items: center; gap: 8px; margin: 5px 0; }
+  label.row.wide { grid-template-columns: 92px 1fr; }
+  label.chk { display: flex; gap: 8px; align-items: center; margin: 5px 0; }
+  select, input[type=text] { width: 100%; box-sizing: border-box; background: #1a1e28; color: var(--ink);
+    border: 1px solid var(--line); border-radius: 6px; padding: 4px 6px; font: inherit; }
+  input[type=range] { width: 100%; accent-color: var(--accent); margin: 0; }
+  output { color: var(--muted); font-variant-numeric: tabular-nums; text-align: right; font-size: 12px; }
+  .desc { color: var(--muted); font-size: 11.5px; font-style: italic; margin: 0 0 4px; }
+  .btns { display: flex; gap: 6px; margin-top: 10px; flex-wrap: wrap; }
+  button { background: #222838; color: var(--ink); border: 1px solid var(--line); border-radius: 6px;
+    padding: 5px 10px; font: inherit; cursor: pointer; }
+  button:hover { border-color: var(--accent); }
+  #stats { color: var(--muted); font-size: 11px; margin-top: 8px; font-variant-numeric: tabular-nums; }
+  .keys { color: var(--muted); font-size: 11px; margin-top: 2px; }
+  #err { position: fixed; inset: 0; display: none; place-items: center; padding: 24px; text-align: center;
+    white-space: pre-wrap; font-family: Consolas, monospace; color: #ff8a8a; }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="err"></div>
+
+<div id="panel">
+  <h1>Electric ! shader lab</h1>
+  <div class="sub">The 1997 screensaver's field and palette cycling, on the GPU.</div>
+
+  <fieldset><legend>Particles</legend>
+    <label class="row wide">Type <select id="type"></select></label>
+    <div class="desc" id="typeDesc"></div>
+    <label class="row">Number <input type="range" id="count" min="1" max="16" step="1"><output id="countOut"></output></label>
+    <label class="chk"><input type="checkbox" id="randomCount"> Random (1 to 5), as the original</label>
+    <label class="row">Band density <input type="range" id="density" min="0.2" max="4" step="0.05"><output id="densityOut"></output></label>
+  </fieldset>
+
+  <fieldset><legend>Colours</legend>
+    <label class="row wide">Palette <select id="palette"></select></label>
+    <label class="chk"><input type="checkbox" id="paletteEach"> New palette with each image</label>
+    <label class="row wide">Cycling <select id="speed">
+      <option value="0">Off</option><option value="1">Slow</option>
+      <option value="2">Moderate</option><option value="3">Fast</option></select></label>
+    <label class="chk"><input type="checkbox" id="reverse"> Reverse direction</label>
+  </fieldset>
+
+  <fieldset><legend>Images</legend>
+    <label class="row">New image after <input type="range" id="imageSeconds" min="5" max="125" step="5"><output id="imageSecondsOut"></output></label>
+    <label class="row">Crossfade <input type="range" id="fade" min="0" max="5" step="0.25"><output id="fadeOut"></output></label>
+    <label class="row">Drift <input type="range" id="drift" min="0" max="1" step="0.05"><output id="driftOut"></output></label>
+  </fieldset>
+
+  <fieldset><legend>Effects</legend>
+    <label class="row wide">Layout <select id="tile">
+      <option value="0">Normal</option><option value="1">Tiling</option>
+      <option value="2">Dissymmetric tiling</option></select></label>
+    <label class="row">Blurring <input type="range" id="blur" min="0" max="16" step="0.5"><output id="blurOut"></output></label>
+    <label class="row wide">Text <input type="text" id="text" maxlength="40" placeholder="subliminal text"></label>
+  </fieldset>
+
+  <fieldset><legend>Rendering</legend>
+    <label class="row wide">Colours <select id="classic">
+      <option value="0">Modern: smooth, anti-aliased</option>
+      <option value="1">Classic: 256 indexed colours</option></select></label>
+    <label class="row wide">Resolution <select id="res">
+      <option value="0">Native</option><option value="1">Half</option>
+      <option value="2">640 x 480 (1997)</option></select></label>
+  </fieldset>
+
+  <div class="btns">
+    <button id="bNew">New image</button>
+    <button id="bPal">Next palette</button>
+    <button id="bFull">Fullscreen</button>
+  </div>
+  <div id="stats"></div>
+  <div class="keys">H hide panel · N new · P palette · C classic · Space pause · F fullscreen</div>
+</div>
+
+<script>
+'use strict';
+
+// --------------------------------------------------------------------------
+// What the original offered (from the strings inside Electric !.scr, v1.3.1)
+// --------------------------------------------------------------------------
+const TYPES = [
+  ['All of them !', 'Use all particle types.'],
+  ['Electrons',     'Potential is the inverted square of the radius.'],
+  ['Melons',        'Potential is the sine of the radius.'],
+  ['Dindons',       'Potential is proportional to radius.'],
+  ['Cochons',       'Potential is spiral.'],
+  ['Croûtons',      'Potential is sine of angle.'],
+  ['Jambons',       'Potential is the result of a Cauchy-Lorentz transform of order 3.'],
+  ['Cornichons',    'Potential is proportional to angle.'],
+  ['Oignons',       'Potential is a custom spiral.'],
+];
+
+// The names are the original's; the colours are guesses until we capture the
+// real palettes. Each is one cyclic gradient, repeated `repeats` times across
+// the 256 entries, so rotating it is seamless.
+const PALETTES = [
+  { name: 'Default', repeats: 1, stops: [[0, '#ff2020'], [1/6, '#ffe020'], [2/6, '#20e040'],
+                                         [3/6, '#20e0ff'], [4/6, '#2040ff'], [5/6, '#e020ff']] },
+  { name: 'Neon', repeats: 2, stops: [[0, '#000000'], [0.30, '#1a0066'], [0.50, '#00e5ff'],
+                                      [0.58, '#ffffff'], [0.68, '#ff2bd6'], [0.85, '#2a0040']] },
+  { name: 'Gaudy', repeats: 3, stops: [[0, '#ff1e1e'], [0.16, '#ff1e1e'], [0.20, '#ffe600'], [0.36, '#ffe600'],
+                                       [0.40, '#1ec81e'], [0.56, '#1ec81e'], [0.60, '#1e5aff'], [0.76, '#1e5aff'],
+                                       [0.80, '#ff1ee6'], [0.96, '#ff1ee6']] },
+  { name: 'Hypnotic', repeats: 4, stops: [[0, '#000000'], [0.5, '#ffffff']] },
+  { name: 'Greenland', repeats: 2, stops: [[0, '#03221c'], [0.25, '#0d6b3d'], [0.50, '#7fdc8c'],
+                                           [0.62, '#f2fff6'], [0.78, '#8fd8ff'], [0.90, '#145a7a']] },
+  { name: 'Alien', repeats: 2, stops: [[0, '#050008'], [0.30, '#3d0a5c'], [0.50, '#a020f0'],
+                                       [0.60, '#39ff14'], [0.70, '#e6ff70'], [0.85, '#0b3d12']] },
+];
+
+const SPEEDS = [0, 0.04, 0.10, 0.25];          // palette cycles per second
+const TAU = Math.PI * 2;
+
+const DEFAULTS = {
+  type: 1, count: 3, randomCount: true, density: 1,
+  palette: 0, paletteEach: true, speed: 2, reverse: false,
+  imageSeconds: 30, fade: 2, drift: 0,
+  tile: 0, blur: 0, text: '',
+  classic: 0, res: 0,
+};
+const S = Object.assign({}, DEFAULTS);
+try { Object.assign(S, JSON.parse(localStorage.getItem('electric-lab') || '{}')); } catch (e) {}
+function save() { try { localStorage.setItem('electric-lab', JSON.stringify(S)); } catch (e) {} }
+
+// --------------------------------------------------------------------------
+// Shaders
+// --------------------------------------------------------------------------
+const VS = `#version 300 es
+const vec2 P[3] = vec2[3](vec2(-1.0, -1.0), vec2(3.0, -1.0), vec2(-1.0, 3.0));
+void main() { gl_Position = vec4(P[gl_VertexID], 0.0, 1.0); }`;
+
+// Pass 1: the field. Each particle contributes (scalable, fixed): the first
+// part is multiplied by band density, the second is an angle term with an
+// integer winding, kept unscaled so its seam stays a whole palette cycle
+// (and therefore invisible).
+const FS_FIELD = `#version 300 es
+precision highp float;
+precision highp int;
+#define MAXP 16
+uniform vec2 uRes;
+uniform int uCount;
+uniform vec4 uP[MAXP];   // x, y, signed strength, type
+uniform vec4 uQ[MAXP];   // per-type parameters; w = rotation
+uniform int uTile;
+uniform float uDensity;
+out vec4 o;
+const float TAU = 6.283185307179586;
+
+vec2 pot(vec2 d, vec4 p, vec4 q) {
+  int type = int(p.w + 0.5);
+  float s = p.z;
+  float r2 = max(dot(d, d), 1e-9);
+  float r = sqrt(r2);
+  float a = atan(d.y, d.x);
+  if (type == 1) return vec2(s * q.x / (r2 + q.y), 0.0);                 // Electrons: 1/r^2
+  if (type == 2) return vec2(s * q.y * sin(r * q.x + q.w), 0.0);         // Melons: sin(r)
+  if (type == 3) return vec2(s * q.x * r, 0.0);                          // Dindons: r
+  if (type == 4) return vec2(s * q.x * r, s * q.y * a / TAU);            // Cochons: spiral
+  if (type == 5) return vec2(s * q.y * sin(q.x * a + q.w), 0.0);         // Croutons: sin(angle)
+  if (type == 6) { float z = 1.0 + r2 / (q.y * q.y);                     // Jambons: Cauchy-Lorentz^3
+                   return vec2(s * q.x / (z * z * z), 0.0); }
+  if (type == 7) return vec2(0.0, s * q.x * a / TAU);                    // Cornichons: angle
+  return vec2(s * q.x * log(r), s * q.y * a / TAU);                      // Oignons: log spiral
+}
+
+void main() {
+  vec2 uv = (gl_FragCoord.xy - 0.5 * uRes) / uRes.y;   // height spans -0.5..0.5
+  vec2 h = vec2(0.5 * uRes.x / uRes.y, 0.5);           // half extents
+  if (uTile == 1) uv = (abs(uv) - 0.5 * h) * 2.0;                    // 2x2, mirrored
+  else if (uTile == 2) uv = (mod(uv + h, h) - 0.5 * h) * 2.0;        // 2x2, repeated
+  vec2 v = vec2(0.0);
+  for (int i = 0; i < MAXP; i++) {
+    if (i >= uCount) break;
+    v += pot(uv - uP[i].xy, uP[i], uQ[i]);
+  }
+  float u = v.x * uDensity + v.y;                      // in palette cycles
+  o = vec4(u, cos(TAU * u), sin(TAU * u), 1.0);
+}`;
+
+// Pass 2 (optional): separable gaussian. The palette pass reads the blurred
+// (cos, sin) pair back as a circular mean, so bands soften instead of smearing
+// across the palette's wrap point, and the dense shimmering cores fade out.
+const FS_BLUR = `#version 300 es
+precision highp float;
+precision highp sampler2D;
+uniform sampler2D uTex;
+uniform vec2 uDir;
+uniform float uSigma;
+out vec4 o;
+void main() {
+  ivec2 p = ivec2(gl_FragCoord.xy);
+  ivec2 hi = textureSize(uTex, 0) - 1;
+  int R = int(ceil(uSigma * 2.5));
+  vec4 acc = vec4(0.0);
+  float wsum = 0.0;
+  for (int i = -40; i <= 40; i++) {
+    if (i < -R || i > R) continue;
+    float w = exp(-0.5 * float(i * i) / (uSigma * uSigma));
+    acc += w * texelFetch(uTex, clamp(p + ivec2(uDir) * i, ivec2(0), hi), 0);
+    wsum += w;
+  }
+  o = acc / wsum;
+}`;
+
+// Pass 3: colour. The modern path samples the palette with textureGrad, so
+// where bands get denser than a pixel the mip chain averages them (the
+// hardware does the anti-aliasing). The classic path picks one of 256
+// entries, exactly as an indexed 8-bit screen would.
+const FS_PALETTE = `#version 300 es
+precision highp float;
+precision highp sampler2D;
+precision highp sampler2DArray;
+uniform sampler2D uFieldA, uFieldB, uText;
+uniform sampler2DArray uPal;
+uniform float uLayerA, uLayerB, uMix, uPhase, uShiftA, uShiftB;
+uniform int uClassic, uBlurred;
+out vec4 o;
+const float TAU = 6.283185307179586;
+
+vec3 shade(sampler2D field, float layer, float shift) {
+  vec4 v = texelFetch(field, ivec2(gl_FragCoord.xy), 0);
+  float coherence = 1.0;
+  float u = v.r;
+  if (uBlurred == 1) {
+    u = atan(v.b, v.g) / TAU;
+    coherence = smoothstep(0.05, 0.6, length(v.gb));
+  }
+  u += uPhase + shift;
+  vec3 c;
+  if (uClassic == 1) {
+    int idx = int(floor(fract(u) * 256.0)) & 255;
+    c = texelFetch(uPal, ivec3(idx, 0, int(layer)), 0).rgb;
+  } else {
+    vec2 du = vec2(dFdx(u), dFdy(u));
+    du -= floor(du + 0.5);                        // ignore jumps of a whole cycle
+    c = textureGrad(uPal, vec3(fract(u), 0.5, layer), vec2(du.x, 0.0), vec2(du.y, 0.0)).rgb;
+  }
+  vec3 avg = textureLod(uPal, vec3(0.5, 0.5, layer), 8.0).rgb;
+  return mix(avg, c, coherence);
+}
+
+void main() {
+  float mask = texelFetch(uText, ivec2(gl_FragCoord.xy), 0).r;
+  vec3 a = shade(uFieldA, uLayerA, mask * uShiftA);
+  vec3 c = a;
+  if (uMix > 0.0) c = mix(a, shade(uFieldB, uLayerB, mask * uShiftB), uMix);
+  o = vec4(c, 1.0);
+}`;
+
+// --------------------------------------------------------------------------
+// GL setup
+// --------------------------------------------------------------------------
+const canvas = document.getElementById('c');
+const errBox = document.getElementById('err');
+function fail(msg) { errBox.textContent = msg; errBox.style.display = 'grid'; throw new Error(msg); }
+
+const gl = canvas.getContext('webgl2', { antialias: false, alpha: false, depth: false, stencil: false,
+                                         powerPreference: 'high-performance' });
+if (!gl) fail('WebGL 2 is not available in this browser.');
+if (!gl.getExtension('EXT_color_buffer_float')) fail('This GPU/browser cannot render to float textures (EXT_color_buffer_float).');
+
+function shader(type, src) {
+  const s = gl.createShader(type);
+  gl.shaderSource(s, src);
+  gl.compileShader(s);
+  if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) fail('Shader error:\n' + gl.getShaderInfoLog(s));
+  return s;
+}
+function program(fsrc) {
+  const p = gl.createProgram();
+  gl.attachShader(p, shader(gl.VERTEX_SHADER, VS));
+  gl.attachShader(p, shader(gl.FRAGMENT_SHADER, fsrc));
+  gl.linkProgram(p);
+  if (!gl.getProgramParameter(p, gl.LINK_STATUS)) fail('Link error:\n' + gl.getProgramInfoLog(p));
+  const u = {};
+  const n = gl.getProgramParameter(p, gl.ACTIVE_UNIFORMS);
+  for (let i = 0; i < n; i++) {
+    const name = gl.getActiveUniform(p, i).name;
+    u[name.replace(/\[0\]$/, '')] = gl.getUniformLocation(p, name);
+  }
+  return { p, u };
+}
+const progField = program(FS_FIELD);
+const progBlur = program(FS_BLUR);
+const progPal = program(FS_PALETTE);
+gl.bindVertexArray(gl.createVertexArray());
+
+function target(w, h) {
+  const tex = gl.createTexture();
+  gl.bindTexture(gl.TEXTURE_2D, tex);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA32F, w, h, 0, gl.RGBA, gl.FLOAT, null);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+  const fbo = gl.createFramebuffer();
+  gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
+  gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex, 0);
+  if (gl.checkFramebufferStatus(gl.FRAMEBUFFER) !== gl.FRAMEBUFFER_COMPLETE) fail('Float render target incomplete.');
+  gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+  return { tex, fbo };
+}
+function dropTarget(t) { if (t) { gl.deleteTexture(t.tex); gl.deleteFramebuffer(t.fbo); } }
+
+// Palettes: one 256x1 layer each in a texture array, mipmapped so the modern
+// path can average bands; the 1x1 mip is each palette's mean colour.
+function hex(h) { return [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16)); }
+function bakePalette(pal) {
+  const out = new Uint8Array(256 * 4);
+  const stops = pal.stops.map(([p, c]) => [p, hex(c)]);
+  for (let i = 0; i < 256; i++) {
+    const t = (i / 256 * pal.repeats) % 1;
+    let k = stops.length - 1;
+    while (k > 0 && stops[k][0] > t) k--;
+    const [p0, c0] = stops[k];
+    const [p1raw, c1] = stops[(k + 1) % stops.length];
+    const p1 = k + 1 < stops.length ? p1raw : 1;
+    const f = p1 > p0 ? (t - p0) / (p1 - p0) : 0;
+    for (let j = 0; j < 3; j++) out[i * 4 + j] = Math.round(c0[j] + (c1[j] - c0[j]) * f);
+    out[i * 4 + 3] = 255;
+  }
+  return out;
+}
+const palTex = gl.createTexture();
+gl.bindTexture(gl.TEXTURE_2D_ARRAY, palTex);
+{
+  const all = new Uint8Array(256 * 4 * PALETTES.length);
+  PALETTES.forEach((p, i) => all.set(bakePalette(p), i * 256 * 4));
+  gl.texImage3D(gl.TEXTURE_2D_ARRAY, 0, gl.RGBA8, 256, 1, PALETTES.length, 0, gl.RGBA, gl.UNSIGNED_BYTE, all);
+  gl.generateMipmap(gl.TEXTURE_2D_ARRAY);
+  gl.texParameteri(gl.TEXTURE_2D_ARRAY, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D_ARRAY, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D_ARRAY, gl.TEXTURE_WRAP_S, gl.REPEAT);
+  gl.texParameteri(gl.TEXTURE_2D_ARRAY, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+}
+
+// Text mask: drawn with the 2D canvas, uploaded as a texture. The palette pass
+// shifts the bands by half a cycle inside the letters, so the text is made of
+// the same bands, out of phase, and cycles with them.
+const textCanvas = document.createElement('canvas');
+const textTex = gl.createTexture();
+function drawText() {
+  textCanvas.width = W; textCanvas.height = H;
+  const ctx = textCanvas.getContext('2d');
+  ctx.fillStyle = '#000'; ctx.fillRect(0, 0, W, H);
+  if (S.text) {
+    let size = H * 0.18;
+    ctx.font = `900 ${size}px "Arial Black", Arial, sans-serif`;
+    const width = ctx.measureText(S.text).width;
+    if (width > W * 0.9) size *= W * 0.9 / width;
+    ctx.font = `900 ${size}px "Arial Black", Arial, sans-serif`;
+    ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(S.text, W / 2, H / 2);
+  }
+  gl.bindTexture(gl.TEXTURE_2D, textTex);
+  gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, gl.RGBA, gl.UNSIGNED_BYTE, textCanvas);
+  gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+}
+
+let W = 0, H = 0, fieldA = null, fieldB = null, scratch = null;
+function resize() {
+  const dpr = window.devicePixelRatio || 1;
+  const cw = Math.max(1, innerWidth), ch = Math.max(1, innerHeight);
+  if (S.res == 2) { H = 480; W = Math.round(480 * cw / ch); }
+  else { const k = S.res == 1 ? 0.5 : 1; W = Math.round(cw * dpr * k); H = Math.round(ch * dpr * k); }
+  canvas.width = W; canvas.height = H;
+  canvas.classList.toggle('px', S.res != 0);
+  [fieldA, fieldB, scratch].forEach(dropTarget);
+  fieldA = target(W, H); fieldB = target(W, H); scratch = target(W, H);
+  drawText();
+}
+
+// --------------------------------------------------------------------------
+// Scenes: random particle placement, seeded so a good one can be recalled
+// --------------------------------------------------------------------------
+function rng(seed) {
+  return function () {
+    seed = (seed + 0x6D2B79F5) | 0;
+    let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+function makeParticle(R, type) {
+  const aspect = W / H;
+  const int = (a, b) => a + Math.floor(R() * (b - a + 1));
+  const sign = R() < 0.5 ? -1 : 1;
+  const p = { type, x: (R() - 0.5) * aspect * 0.92, y: (R() - 0.5) * 0.92,
+              s: sign * (0.6 + 0.8 * R()), rot: R() * TAU,
+              fx: 0.4 + R(), fy: 0.4 + R(), px: R() * TAU, py: R() * TAU, q: null };
+  switch (type) {
+    case 1: p.q = [0.012, 0.00002]; break;                        // coefficient, softening
+    case 2: p.q = [15 + 20 * R(), 0.15 + 0.2 * R()]; break;     // frequency, amplitude
+    case 3: p.q = [0.6 + 0.9 * R(), 0]; break;                       // slope
+    case 4: p.q = [1 + 1.5 * R(), int(1, 3)]; p.s = sign; break;   // radial rate, windings
+    case 5: p.q = [int(2, 7), 0.3 + 0.5 * R()]; break;           // lobes, amplitude
+    case 6: p.q = [1 + 2 * R(), 0.08 + 0.17 * R()]; break;       // height, width
+    case 7: p.q = [int(1, 3), 0]; p.s = sign; break;             // windings
+    case 8: p.q = [(0.4 + 0.8 * R()) * (R() < 0.5 ? -1 : 1), int(1, 4)]; p.s = sign; break;
+  }
+  return p;
+}
+
+function makeScene(seed, palette) {
+  const R = rng(seed);
+  const n = S.randomCount ? 1 + Math.floor(R() * 5) : S.count;
+  const parts = [];
+  for (let i = 0; i < n; i++) parts.push(makeParticle(R, S.type == 0 ? 1 + Math.floor(R() * 8) : +S.type));
+  return { seed, parts, palette };
+}
+
+let cur = null, trans = null, sceneStart = 0, clock = 0, driftClock = 0, phase = 0, paused = false;
+
+function pickPalette(prev) {
+  if (!S.paletteEach) return +S.palette;
+  if (prev < 0) return Math.floor(Math.random() * PALETTES.length);
+  let p = Math.floor(Math.random() * (PALETTES.length - 1));
+  return p >= prev ? p + 1 : p;
+}
+function begin(next) {
+  if (trans) cur = trans.next;
+  if (!cur || S.fade <= 0) { cur = next; trans = null; }
+  else trans = { next, start: clock };
+  sceneStart = clock;
+}
+function newImage() {
+  const prev = trans ? trans.next.palette : cur ? cur.palette : -1;
+  begin(makeScene((Math.random() * 2 ** 31) | 0, pickPalette(prev)));
+}
+function setPalette(p) {
+  S.palette = p; save(); syncUI();
+  const base = trans ? trans.next : cur;
+  begin(Object.assign({}, base, { palette: p }));
+}
+
+// --------------------------------------------------------------------------
+// Rendering
+// --------------------------------------------------------------------------
+const bufP = new Float32Array(16 * 4), bufQ = new Float32Array(16 * 4);
+
+function renderField(scene, dst) {
+  const amp = 0.06;
+  scene.parts.forEach((p, i) => {
+    const dx = amp * Math.sin(driftClock * 0.15 * p.fx + p.px);
+    const dy = amp * Math.sin(driftClock * 0.15 * p.fy + p.py);
+    bufP.set([p.x + dx, p.y + dy, p.s, p.type], i * 4);
+    bufQ.set([p.q[0], p.q[1], 0, p.rot], i * 4);
+  });
+  const { p, u } = progField;
+  gl.useProgram(p);
+  gl.bindFramebuffer(gl.FRAMEBUFFER, dst.fbo);
+  gl.viewport(0, 0, W, H);
+  gl.uniform2f(u.uRes, W, H);
+  gl.uniform1i(u.uCount, scene.parts.length);
+  gl.uniform4fv(u.uP, bufP);
+  gl.uniform4fv(u.uQ, bufQ);
+  gl.uniform1i(u.uTile, +S.tile);
+  gl.uniform1f(u.uDensity, +S.density);
+  gl.drawArrays(gl.TRIANGLES, 0, 3);
+  if (S.blur > 0) {
+    gl.useProgram(progBlur.p);
+    gl.uniform1f(progBlur.u.uSigma, +S.blur);
+    gl.activeTexture(gl.TEXTURE0);
+    gl.uniform1i(progBlur.u.uTex, 0);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, scratch.fbo);
+    gl.bindTexture(gl.TEXTURE_2D, dst.tex);
+    gl.uniform2f(progBlur.u.uDir, 1, 0);
+    gl.drawArrays(gl.TRIANGLES, 0, 3);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, dst.fbo);
+    gl.bindTexture(gl.TEXTURE_2D, scratch.tex);
+    gl.uniform2f(progBlur.u.uDir, 0, 1);
+    gl.drawArrays(gl.TRIANGLES, 0, 3);
+  }
+}
+
+function renderPalette(mix) {
+  const { p, u } = progPal;
+  gl.useProgram(p);
+  gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+  gl.viewport(0, 0, W, H);
+  const bind = (unit, kind, tex, loc) => { gl.activeTexture(gl.TEXTURE0 + unit); gl.bindTexture(kind, tex); gl.uniform1i(loc, unit); };
+  bind(0, gl.TEXTURE_2D, fieldA.tex, u.uFieldA);
+  bind(1, gl.TEXTURE_2D, (mix > 0 ? fieldB : fieldA).tex, u.uFieldB);
+  bind(2, gl.TEXTURE_2D, textTex, u.uText);
+  bind(3, gl.TEXTURE_2D_ARRAY, palTex, u.uPal);
+  const palB = trans ? trans.next.palette : cur.palette;
+  // Half of one palette repeat: the letters show the bands in opposite phase.
+  const shift = pal => (S.text ? 0.5 / PALETTES[pal].repeats : 0);
+  gl.uniform1f(u.uLayerA, cur.palette);
+  gl.uniform1f(u.uLayerB, palB);
+  gl.uniform1f(u.uMix, mix);
+  gl.uniform1f(u.uPhase, phase % 1);
+  gl.uniform1f(u.uShiftA, shift(cur.palette));
+  gl.uniform1f(u.uShiftB, shift(palB));
+  gl.uniform1i(u.uClassic, +S.classic);
+  gl.uniform1i(u.uBlurred, S.blur > 0 ? 1 : 0);
+  gl.drawArrays(gl.TRIANGLES, 0, 3);
+}
+
+let last = performance.now(), fpsT = 0, fpsN = 0, fps = 0;
+const stats = document.getElementById('stats');
+function frame(now) {
+  const dt = Math.min(0.1, (now - last) / 1000);
+  last = now;
+  clock += dt;
+  driftClock += dt * S.drift;
+  if (!paused) phase += dt * SPEEDS[S.speed] * (S.reverse ? -1 : 1);
+  if (S.imageSeconds <= 120 && clock - sceneStart > S.imageSeconds) newImage();
+
+  let mix = 0;
+  if (trans) {
+    mix = (clock - trans.start) / Math.max(1e-3, S.fade);
+    if (mix >= 1) { cur = trans.next; trans = null; mix = 0; }
+  }
+  renderField(cur, fieldA);
+  if (trans) renderField(trans.next, fieldB);
+  renderPalette(mix);
+
+  fpsT += dt; fpsN++;
+  if (fpsT >= 0.5) {
+    fps = fpsN / fpsT; fpsT = 0; fpsN = 0;
+    const sc = trans ? trans.next : cur;
+    stats.textContent = `${W}x${H} · ${fps.toFixed(0)} fps · seed ${sc.seed} · ` +
+      `${sc.parts.length} particle${sc.parts.length > 1 ? 's' : ''} · ${PALETTES[sc.palette].name}` +
+      (paused ? ' · paused' : '');
+  }
+  requestAnimationFrame(frame);
+}
+
+// --------------------------------------------------------------------------
+// Controls
+// --------------------------------------------------------------------------
+const el = id => document.getElementById(id);
+TYPES.forEach(([name], i) => el('type').add(new Option(name, i)));
+PALETTES.forEach((p, i) => el('palette').add(new Option(p.name, i)));
+
+const fmt = {
+  count: v => v, density: v => (+v).toFixed(2),
+  imageSeconds: v => (v > 120 ? 'never' : v + ' s'), fade: v => (+v ? (+v).toFixed(2) + ' s' : 'cut'),
+  drift: v => (+v ? (+v).toFixed(2) : 'off'), blur: v => (+v ? v + ' px' : 'off'),
+};
+function syncUI() {
+  for (const k of Object.keys(DEFAULTS)) {
+    const e = el(k);
+    if (!e) continue;
+    if (e.type === 'checkbox') e.checked = !!S[k]; else e.value = S[k];
+    if (el(k + 'Out')) el(k + 'Out').textContent = fmt[k](S[k]);
+  }
+  el('typeDesc').textContent = TYPES[S.type][1];
+  el('count').disabled = S.randomCount;
+}
+const reseedKeys = new Set(['type', 'count', 'randomCount']);
+for (const k of Object.keys(DEFAULTS)) {
+  const e = el(k);
+  if (!e) continue;
+  const ev = e.type === 'range' || e.type === 'text' ? 'input' : 'change';
+  e.addEventListener(ev, () => {
+    const v = e.type === 'checkbox' ? e.checked : e.type === 'text' ? e.value : +e.value;
+    if (k === 'palette') { setPalette(v); return; }
+    S[k] = v; save(); syncUI();
+    if (reseedKeys.has(k)) newImage();
+    if (k === 'res') resize();
+    if (k === 'text') drawText();
+  });
+}
+el('bNew').onclick = newImage;
+el('bPal').onclick = () => setPalette(((trans ? trans.next : cur).palette + 1) % PALETTES.length);
+el('bFull').onclick = () => document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen();
+
+addEventListener('keydown', e => {
+  if (e.target.tagName === 'INPUT' && e.target.type === 'text') return;
+  const k = e.key.toLowerCase();
+  if (k === 'h') { el('panel').classList.toggle('hidden'); document.body.classList.toggle('nocursor'); }
+  else if (k === 'n') newImage();
+  else if (k === 'p') el('bPal').onclick();
+  else if (k === 'c') { S.classic = S.classic ? 0 : 1; save(); syncUI(); }
+  else if (k === 'f') el('bFull').onclick();
+  else if (k === ' ') { paused = !paused; e.preventDefault(); }
+});
+addEventListener('resize', resize);
+
+syncUI();
+resize();
+newImage();
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>

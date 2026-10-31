@@ -1,0 +1,13 @@
+__pycache__/
+.pytest_cache/
+captures/
+build/
+dist/
+config.json
+
+# The built programs: 17 MB each, made by build.ps1.
+*.scr
+*.exe
+
+# The 1997 original is kept, unchanged, for a little history.
+!original/*.scr

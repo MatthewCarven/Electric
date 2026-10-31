@@ -1,0 +1,10 @@
+[project]
+name = "electric"
+version = "0.1.0"
+description = "A GPU remake of JX Bardant's 1997 Electric ! screensaver"
+requires-python = ">=3.11"
+dependencies = ["pygame-ce>=2.5", "moderngl>=5.10"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
