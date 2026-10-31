@@ -18,7 +18,11 @@ custom spiral), with tiling, dissymmetric tiling, blurring and the
 
 ## Two files
 
-Build them with `build.ps1` (below). Both use the same settings.
+Download them from the
+[Releases page](https://github.com/MatthewCarven/Electric/releases/latest), or
+build them with `build.ps1` (below). Both use the same settings. They're not
+signed, so the first time Windows SmartScreen may say "Windows protected your
+PC": **More info**, then **Run anyway**.
 
 **`Electric.exe`**: double-click it to run Electric in a window, with a
 settings panel down the right. Everything in the panel changes the picture as

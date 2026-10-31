@@ -248,3 +248,9 @@ exe and scr pass the smoke runs, including Random with a new image every
 **Git.** Matthew ran `git init`. `.gitignore` now lets `original/` in (the
 1997 files, unchanged), and `.gitattributes` keeps them byte for byte. The
 built .exe/.scr stay out (17 MB each): GitHub Releases would be the place.
+
+**Release v0.1.0** (Matthew: "Yes, make a release"): Electric.exe and
+Electric.scr from the 11:08 build, which is newer than every source file, so
+it matches the pushed code. Attached with `gh release create`, notes listing
+the SHA-256 of each. The README now points at the Releases page and says what
+to do about SmartScreen (the files aren't signed).

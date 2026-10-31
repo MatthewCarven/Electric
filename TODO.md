@@ -30,11 +30,11 @@
 
 ## Next
 
-- A GitHub Release with Electric.exe and Electric.scr attached, so they can be
-  downloaded without building (they're kept out of git at 17 MB each).
-
 - A HUD line in fullscreen when the panel is hidden (what changed, by key).
-- Bring the lab up to date: the 1997 palette, `uOrigin`, 1080p-relative blur.
+- Bring the lab up to date: the newer palettes, 1997 and Random, `uOrigin`,
+  1080p-relative blur.
+- Releases: build.ps1 then `gh release create vX.Y.Z Electric.exe
+  Electric.scr` (bump `electric/__init__.py`'s version first).
 - The Electron cores still show faint ring aliasing where the mip level
   steps; supersampling only the core region would clean it up.
 - Per-monitor shows pick palettes independently; maybe an option to keep
@@ -47,3 +47,4 @@
 3. Settings panel, Electric.exe + Electric.scr (/s every monitor, /p, /c),
    build script, the 1997 palette from the real original (2026-10-31).
 4. Eleven more named palettes and Random; on GitHub (2026-10-31).
+5. Release v0.1.0 with Electric.exe and Electric.scr (2026-10-31).
